@@ -25,7 +25,7 @@ def cannyEdge(img):
 
 
 def showImage(img):
-    plt.imshow('Image', img)
+    plt.imshow(img)
     plt.show()
 
 
