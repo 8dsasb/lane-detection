@@ -24,9 +24,18 @@ def cannyEdge(img):
     return (cv2.Canny(img, 40, 120))
 
 
+def laneRegion(img):
+    image_height = img.shape[0]
+    polygons = np.array(
+        [[(170, image_height), (750, 170), (1060, image_height)]])
+    image_mask = np.zeros_like(img)
+    cv2.fillPoly(image_mask, polygons, 255)
+    return image_mask
+
+
 def showImage(img):
-    plt.imshow(img)
-    plt.show()
+    cv2.imshow("Image", img)
+    cv2.waitKey(0)
 
 
 # ****** EDGE DETECTION ******#
@@ -35,4 +44,5 @@ def showImage(img):
 gray_image = grayScaleConv(img)
 blurred_image = gaussianBlur(gray_image)
 edge_image = cannyEdge(blurred_image)
-showImage(edge_image)
+image_mask = laneRegion(edge_image)
+showImage(image_mask)
