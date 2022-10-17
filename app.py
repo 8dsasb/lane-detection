@@ -30,7 +30,8 @@ def laneRegion(img):
         [[(170, image_height), (750, 170), (1060, image_height)]])
     image_mask = np.zeros_like(img)
     cv2.fillPoly(image_mask, polygons, 255)
-    return image_mask
+    cropped_image = cv2.bitwise_and(img, image_mask)
+    return cropped_image
 
 
 def showImage(img):
@@ -44,5 +45,5 @@ def showImage(img):
 gray_image = grayScaleConv(img)
 blurred_image = gaussianBlur(gray_image)
 edge_image = cannyEdge(blurred_image)
-image_mask = laneRegion(edge_image)
-showImage(image_mask)
+cropped_image = laneRegion(edge_image)
+showImage(cropped_image)
