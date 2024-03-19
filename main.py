@@ -5,17 +5,19 @@ import numpy as np
 # ****** INITIALIZATIONS *****#
 
 original_img = cv2.imread('lane.jpg')
-img = np.copy(original_img)
+image = np.copy(original_img)
 
 
 # ****** EDGE DETECTION ******#
 
 
-gray_image = ap.grayScaleConv(img)
+gray_image = ap.grayScaleConv(image)
 #not needed since canny itself applies blur to the image
 blurred_image = ap.gaussianBlur(gray_image)
 edge_image = ap.cannyEdge(blurred_image)
-image_mask = ap.laneRegion(edge_image)
+cropped_image = ap.laneRegion(edge_image)
+hough_trans_image = ap.houghTransform(cropped_image)
+line_over_image = ap.display_lines(image, hough_trans_image)
 
 #show image commands for all variations of the image above
 
@@ -26,6 +28,11 @@ image_mask = ap.laneRegion(edge_image)
 # #edge image
 # ap.showImage(edge_image)
 
+#cropped_image
+# ap.showImage(cropped_image)
 
-#image mask
-ap.showImage(image_mask)
+# #hough image
+# ap.showImage(hough_trans_image)
+
+#display lines
+ap.showImage(line_over_image)

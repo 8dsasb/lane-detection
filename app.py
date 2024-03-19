@@ -34,9 +34,23 @@ def laneRegion(img):
         [[(170, image_height), (750, 170), (1060, image_height)]])
     image_mask = np.zeros_like(img)
     cv2.fillPoly(image_mask, polygons, 255)
-    return image_mask
+    cropped_image = cv2.bitwise_and(img, image_mask)
+    return cropped_image
 
-#hough  transformation
+
+def display_lines(img, lines):
+    background = np.zeros_like(img)
+    for i in lines:
+        x1, y1, x2, y2 = i.reshape(4)
+        cv2.line(background, (x1,y1), (x2,y2), (0,255,0), 10)
+    return background
+
+#hough transformation
+
+def houghTransform(img):
+    #image, row, theta, threshold
+    image = cv2.HoughLinesP(img, 2, np.pi/180, 100, minLineLength=40, maxLineGap=5)
+    return image
 
 def showImage(img):
     cv2.imshow("Image", img)
