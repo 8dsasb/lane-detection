@@ -102,37 +102,6 @@ def houghTransform(img):
     """
     return cv2.HoughLinesP(img, 2, np.pi / 180, 100, np.array([]), minLineLength=40, maxLineGap=5)
 
-def average_slope_intercept(img, lines):
-    """
-    Calculate the average slope and intercept for the left and right lane lines.
-
-    Args:
-        img (numpy.ndarray): The input image (used for drawing the lines).
-        lines (numpy.ndarray): Array of detected lines.
-
-    Returns:
-        numpy.ndarray: The left and right lane lines drawn on the image.
-    """
-    left_lines = []
-    right_lines = []
-    for line in lines:
-        x1, y1, x2, y2 = line.reshape(4)
-        parameters = np.polyfit((x1, x2), (y1, y2), 1)
-        slope, intercept = parameters[0], parameters[1]
-
-        if slope < 0:
-            left_lines.append((slope, intercept))
-        else:
-            right_lines.append((slope, intercept))
-
-    left_lines_avg = np.average(left_lines, axis=0)
-    right_lines_avg = np.average(right_lines, axis=0)
-
-    left_line = draw_lines(img, left_lines_avg)
-    right_line = draw_lines(img, right_lines_avg)
-
-    return np.array([left_line, right_line])
-
 def draw_lines(image, line):
     """
     Draw a line on the image given the slope and intercept.
@@ -152,6 +121,39 @@ def draw_lines(image, line):
 
     return np.array([x1, y1, x2, y2])
 
+def average_slope_intercept(img, lines):
+    """
+    Calculate the average slope and intercept for the left and right lane lines.
+
+    Args:
+        img (numpy.ndarray): The input image (used for drawing the lines).
+        lines (numpy.ndarray): Array of detected lines.
+
+    Returns:
+        numpy.ndarray: The left and right lane lines drawn on the image.
+    """
+    left_lines = []
+    right_lines = []
+    if lines is None:
+        return None
+    for line in lines:
+        x1, y1, x2, y2 = line.reshape(4)
+        parameters = np.polyfit((x1, x2), (y1, y2), 1)
+        slope, intercept = parameters[0], parameters[1]
+
+        if slope < 0:
+            left_lines.append((slope, intercept))
+        else:
+            right_lines.append((slope, intercept))
+
+    left_lines_avg = np.average(left_lines, axis=0)
+    right_lines_avg = np.average(right_lines, axis=0)
+
+    left_line = draw_lines(img, left_lines_avg)
+    right_line = draw_lines(img, right_lines_avg)
+
+    return np.array([left_line, right_line])
+
 def line_on_image(img, line_only_img):
     line_on_image = cv2.addWeighted(img, 0.8, line_only_img, 1, 1)
     return line_on_image
@@ -166,8 +168,11 @@ def show_image(img):
     cv2.imshow("Image", img)
     cv2.waitKey(0)
 
-def show_imgs_grid(images):
+def show_imgs_grid(image_dict):
     # Determine the number of images
+    labels = list(image_dict.keys())
+    images = list(image_dict.values())
+
     num_images = len(images)
     
     # Calculate grid dimensions: This will give an approximate square grid
@@ -175,7 +180,7 @@ def show_imgs_grid(images):
     rows = math.ceil(num_images / cols)  # Calculate number of rows dynamically
 
     # Create subplots with dynamic grid size
-    fig, axes = plt.subplots(rows, cols, figsize=(cols * 3, rows * 3))
+    fig, axes = plt.subplots(rows, cols, figsize=(cols * 4, rows * 4))
 
     # Flatten axes array to make it easier to iterate through
     axes = axes.flatten()
@@ -186,12 +191,14 @@ def show_imgs_grid(images):
         ax.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))  # Convert BGR to RGB for correct display
         ax.axis('off')  # Turn off axis labels
 
+        # Labels below the image
+        ax.set_title(labels[idx], fontsize = 10, pad = 10)
     # Turn off axes for any unused subplots
     for idx in range(num_images, len(axes)):
         axes[idx].axis('off')
 
-    # Adjust layout and show the grid of images
-    plt.tight_layout()
+    # Adjust layout, avoid label merging and show the grid of images
+    
     plt.show()
 
 # def showMultiple(images, grid_shape = (1,3)):
