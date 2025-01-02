@@ -2,46 +2,34 @@ import app as ap
 import cv2
 import numpy as np
 
-# ****** INITIALIZATIONS *****#
-
+# ****** INITIALIZATIONS *****
 original_img = cv2.imread('lane.jpg')
 image = np.copy(original_img)
 
+# ****** EDGE DETECTION ******
+gray_image = ap.grayScaleConv(image)  # Convert image to grayscale
+blurred_image = ap.gaussianBlur(gray_image)  # Apply Gaussian blur
+edge_image = ap.cannyEdge(blurred_image)  # Detect edges using Canny
+cropped_image = ap.laneRegion(edge_image)  # Crop region of interest
+hough_trans_image = ap.houghTransform(cropped_image)  # Detect lines using Hough Transform
 
-# ****** EDGE DETECTION ******#
-
-
-gray_image = ap.grayScaleConv(image)
-#not needed since canny itself applies blur to the image
-blurred_image = ap.gaussianBlur(gray_image)
-edge_image = ap.cannyEdge(blurred_image)
-cropped_image = ap.laneRegion(edge_image)
-hough_trans_image = ap.houghTransform(cropped_image)
-#non averaged lines => hough_trans_image
+# Display detected lines before averaging
 line_only_image = ap.display_lines(image, hough_trans_image)
-#averaged lines
+line_on_image = ap.line_on_image(image, line_only_image)
+
+list_of_images = [gray_image, blurred_image, edge_image, cropped_image, line_only_image, line_on_image]
+# Calculate the average slope and intercept of detected lines
 averaged_lines = ap.average_slope_intercept(image, hough_trans_image)
-line_only_image = ap.display_lines(image, averaged_lines)
-line_over_image = ap.lineOverImage(image, line_only_image)
-#show image commands for all variations of the image above
 
-# #gray image
-# ap.showImage(gray_image)
-# #blurred image
-# ap.showImage(blurred_image)
-# #edge image
-# ap.showImage(edge_image)
+# Display the averaged lines
+# line_only_image = ap.display_lines(image, averaged_lines)
 
-#cropped_image
-# ap.showImage(cropped_image)
+# line_over_image = ap.lineOverImage(image, line_only_image)
 
-# #hough image
-# ap.showImage(hough_trans_image)
+# Optional: Show the final image with lines
+# ap.show_image(cropped_image)
 
-#display lines
-# ap.showImage(line_only_image)
+# ap.show_image(line_over_image)
+# ap.showMultiple(list_of_images)
 
-#display line over image
-# ap.showImage(hough_trans_image)
-
-ap.showImage(line_over_image)
+ap.show_imgs_grid(list_of_images)

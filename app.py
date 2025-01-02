@@ -2,107 +2,236 @@
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
-
-# ***** VARIABLES INITIALIZATION *****
-
+import math
 
 # ***** FUNCTIONS *****
 
-
 def grayScaleConv(img):
-    return (cv2.cvtColor(img, cv2.COLOR_RGB2GRAY))
+    """
+    Convert an image to grayscale.
 
-#optional step since canny applies blur
+    Args:
+        img (numpy.ndarray): The input image in RGB format.
+
+    Returns:
+        numpy.ndarray: The grayscale version of the input image.
+    """
+    return cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+
 def gaussianBlur(img):
-    #image, kernel size and standard deviation
-    return (cv2.GaussianBlur(img, (5, 5), 0))
+    """
+    Apply Gaussian blur to an image to reduce noise and detail.
 
+    Args:
+        img (numpy.ndarray): The input image.
+    
+    Returns:
+        numpy.ndarray: The blurred image.
 
-#derivative between adjacent pixels to spot the pixel intensity difference
-#making it easier to spot the edges if there is a big difference (change in gradient)
-
+    Notes:
+        - The kernel size is (5, 5), and standard deviation is 0 (optimal value).
+    """
+    return cv2.GaussianBlur(img, (5, 5), 0)
 
 def cannyEdge(img):
-    # threshold low:high = 1:3
-    return (cv2.Canny(img, 40, 120))
+    """
+    Detect edges in an image using the Canny edge detection algorithm.
 
+    Args:
+        img (numpy.ndarray): The input image.
+
+    Returns:
+        numpy.ndarray: The image with detected edges.
+
+    Notes:
+        - Thresholds are set to 40 (low) and 120 (high), with a ratio of 1:3.
+    """
+    return cv2.Canny(img, 40, 120)
 
 def laneRegion(img):
-    #numpy tuple given by shape = (row,column) so row = height of the image 
+    """
+    Applies a polygonal mask (triangle) to an input image, isolating a region of interest.
+
+    Args:
+        img (numpy.ndarray): The input image, typically in BGR format.
+
+    Returns:
+        numpy.ndarray: The image with the region inside the triangle retained and the rest blacked out.
+
+    Notes:
+        - Mask is defined as a triangle with vertices at (170, image_height), (750, 170), and (1060, image_height).
+    """
     image_height = img.shape[0]
-    #coordinates for the polygon, in this case a triangle since it has three points
-    polygons = np.array(
-        [[(170, image_height), (750, 170), (1060, image_height)]])
+    polygons = np.array([[(170, image_height), (750, 170), (1060, image_height)]])
     image_mask = np.zeros_like(img)
-    #filling the mask with the polygon, the result is a black image with white triangle in the specified coordinates
     cv2.fillPoly(image_mask, polygons, 255)
-    #performing bitwise and which returns a value if both of the pixel values being operated have the value 1, i.e 1 bitwiseand 1 = 1, else 0
     cropped_image = cv2.bitwise_and(img, image_mask)
     return cropped_image
 
-
-#function to display detected lines in a black image
 def display_lines(img, lines):
+    """
+    Display detected lines on a black background.
+
+    Args:
+        img (numpy.ndarray): The input image (used only for size).
+        lines (numpy.ndarray): Array of detected lines, each defined by two points (x1, y1, x2, y2).
+
+    Returns:
+        numpy.ndarray: A black image with the detected lines drawn in green.
+    """
     background = np.zeros_like(img)
-    for x1, y1, x2, y2 in lines:
-        #reshaping only when we are using the output of the hough transformation which is a 3d image. however, if we use the avreaged image, then it is already a 1-d array so this line is being commented out
-        # x1, y1, x2, y2 = i.reshape(4)
-    
-        cv2.line(background, (x1,y1), (x2,y2), (0,255,0), 10)
-    
+    # old error
+    # for x1, y1, x2, y2 in lines:
+    #     cv2.line(background, (x1, y1), (x2, y2), (0, 255, 0), 8)
+    # new modified code:
+    if lines is not None:
+        for line in lines:
+            x1, y1, x2, y2 = line.reshape(4)
+            cv2.line(background, (x1, y1), (x2, y2), (255, 0, 0), 10)
     return background
 
-#hough transformation, for seeing if a series of points in the image belong to a line or not
-
 def houghTransform(img):
-    #image, row, theta, threshold
-    image = cv2.HoughLinesP(img, 2, np.pi/180, 100, np.array([]),minLineLength=40, maxLineGap=5)
-    return image
+    """
+    Apply the Hough Transform to detect lines in the image.
 
-def lineOverImage(img, line_img):
-    #displaying the detected line over the original image
-    #the original image gets lets weight so that the detected line is much more prominent. 0.8 and 1
-    line_over_image = cv2.addWeighted(img, 0.8, line_img, 1, 1)
-    return line_over_image
+    Args:
+        img (numpy.ndarray): The input binary image where edges are detected.
+
+    Returns:
+        numpy.ndarray: Array of detected lines in the form [x1, y1, x2, y2].
+    """
+    return cv2.HoughLinesP(img, 2, np.pi / 180, 100, np.array([]), minLineLength=40, maxLineGap=5)
 
 def average_slope_intercept(img, lines):
-    #arrays to store all the lines detected on the left and right side of the lane
+    """
+    Calculate the average slope and intercept for the left and right lane lines.
+
+    Args:
+        img (numpy.ndarray): The input image (used for drawing the lines).
+        lines (numpy.ndarray): Array of detected lines.
+
+    Returns:
+        numpy.ndarray: The left and right lane lines drawn on the image.
+    """
     left_lines = []
     right_lines = []
-    for i in lines:
-        x1,y1,x2,y2 = i.reshape(4)
-    #getting the slope and intercepts of the lines using polyfit
-        parameters = np.polyfit((x1,x2), (y1,y2), 1)
-        #the returned value is in the form of [slope,intercept]
+    for line in lines:
+        x1, y1, x2, y2 = line.reshape(4)
+        parameters = np.polyfit((x1, x2), (y1, y2), 1)
         slope, intercept = parameters[0], parameters[1]
-        #since the slope of the left lane line is negative, that is as we move positively down the x axis, the value in the y axis decreases and vice versa. it is the opposite for the right lane. 
+
         if slope < 0:
             left_lines.append((slope, intercept))
         else:
             right_lines.append((slope, intercept))
-    #since the appeneded lines are an array of slope and intercept value, with the first element of each array being the slope and the second element of each array being the intercept, we can find the average of these values in the 0 axis, which is, selecting every elements of a low and summingn it vertically. this will give a final array with an average value of all the slopes and intercepts for left and right side (single lines for each side).
-    left_lines_avg = np.average(left_lines, axis = 0)
-    right_lines_avg = np.average(right_lines, axis = 0)
-    # print(left_lines_avg, "left")
-    # print(right_lines_avg, "riight")
+
+    left_lines_avg = np.average(left_lines, axis=0)
+    right_lines_avg = np.average(right_lines, axis=0)
+
     left_line = draw_lines(img, left_lines_avg)
-    right_line = draw_lines(img, right_lines_avg) 
+    right_line = draw_lines(img, right_lines_avg)
+
     return np.array([left_line, right_line])
 
 def draw_lines(image, line):
+    """
+    Draw a line on the image given the slope and intercept.
+
+    Args:
+        image (numpy.ndarray): The input image.
+        line (tuple): A tuple (slope, intercept) representing the line.
+
+    Returns:
+        numpy.ndarray: The coordinates of the line to be drawn.
+    """
     slope, intercept = line
     y1 = image.shape[0]
-    y2 = int(y1*(3/5))
-    x1 = int((y1 - intercept)/slope)
-    x2 = int((y2 - intercept)/slope)
-    return np.array([x1,y1,x2,y2])
+    y2 = int(y1 * (3 / 5))
+    x1 = int((y1 - intercept) / slope)
+    x2 = int((y2 - intercept) / slope)
 
-def showImage(img):
+    return np.array([x1, y1, x2, y2])
+
+def line_on_image(img, line_only_img):
+    line_on_image = cv2.addWeighted(img, 0.8, line_only_img, 1, 1)
+    return line_on_image
+    
+def show_image(img):
+    """
+    Display an image in a window.
+
+    Args:
+        img (numpy.ndarray): The image to be displayed.
+    """
     cv2.imshow("Image", img)
     cv2.waitKey(0)
 
-# def showVideo(video):
-#     vid_cap = cv2.VideoCapture(video)
-#     while (vid_cap.isOpened()):
-#         _, current_frame = vid_cap.read()
+def show_imgs_grid(images):
+    # Determine the number of images
+    num_images = len(images)
+    
+    # Calculate grid dimensions: This will give an approximate square grid
+    cols = 3  # Define number of columns
+    rows = math.ceil(num_images / cols)  # Calculate number of rows dynamically
 
+    # Create subplots with dynamic grid size
+    fig, axes = plt.subplots(rows, cols, figsize=(cols * 3, rows * 3))
+
+    # Flatten axes array to make it easier to iterate through
+    axes = axes.flatten()
+
+    # Loop through each image and corresponding axis
+    for idx, img in enumerate(images):
+        ax = axes[idx]  # Get the axis for the current image
+        ax.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))  # Convert BGR to RGB for correct display
+        ax.axis('off')  # Turn off axis labels
+
+    # Turn off axes for any unused subplots
+    for idx in range(num_images, len(axes)):
+        axes[idx].axis('off')
+
+    # Adjust layout and show the grid of images
+    plt.tight_layout()
+    plt.show()
+
+# def showMultiple(images, grid_shape = (1,3)):
+#     """
+#     Display multiple images together in a grid
+    
+#     Args:
+#         images: Array of images to be displayed
+#     """
+#     # Determining the grid size
+#     rows, cols = grid_shape
+#     # Empty array to store resized images
+#     resized_images = []
+
+#     # Dimensions for resizing all of the images for uniformity
+#     max_height = max([img.shape[0] for img in images])
+#     max_width = max([img.shape[1] for img in images])
+
+
+#     # Resizing the images
+#     for img in images:
+#         resized_img = cv2.resize(img, (max_width, max_height))
+#         resized_images.append(resized_img)
+
+#     # Arranging images in a grid
+#     # Concatenating images horizontally for each row
+#     rows_images = []
+#     for i in range(rows):
+#         row_images = resized_images[i * cols:(i+1) * cols]
+#         if row_images:
+#             row = cv2.hconcat(row_images)
+#             rows_images.append(row)
+    
+#     # Concatenate all rows vertically
+#     grid_image = cv2.vconcat(rows_images)
+
+#     # Display the result
+#     cv2.imshow("Image Grid", grid_image)
+#     cv2.waitKey(0)
+#     cv2.destroyAllWindows()
+
+
+    
