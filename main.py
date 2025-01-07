@@ -27,11 +27,8 @@ line_only_image = ap.display_lines(image, averaged_lines)
 line_over_image = ap.line_on_image(image, line_only_image)
 
 list_of_images = {"Gray Img": gray_image, "Blurred Img":blurred_image, "Canny Edge": edge_image, "Cropped Img": cropped_image, "Lines Only": line_only_image, "Detected lines": line_on_image, "Averaged Line": line_over_image}
-# Optional: Show the final image with lines
-# ap.show_image(cropped_image)
 
-# ap.show_image(line_over_image)
-# ap.showMultiple(list_of_images)
+#Show the final images with lines
 
 ap.show_imgs_grid(list_of_images)
 
@@ -58,13 +55,11 @@ while(cap.isOpened()):
 
     # Display the lines on the frame
     line_only_image = ap.display_lines(frame, averaged_lines)
+
     line_over_image = ap.line_on_image(frame, line_only_image)
 
-    # Combine the original frame with detected lines (line overlaid)
-    combo_image = cv2.addWeighted(frame, 0.8, line_over_image, 1, 0)
-
     # Show the resulting image with lines overlaid
-    cv2.imshow("Lane Detection", combo_image)
+    cv2.imshow("Lane Detection", line_over_image)
 
     # Exit the loop if the 'q' key is pressed
     if cv2.waitKey(1) & 0xFF == ord('q'):
