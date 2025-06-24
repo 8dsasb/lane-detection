@@ -2,8 +2,6 @@
 
 This project implements a **Lane Detection System** using computer vision techniques. The system identifies lane lines on road images or videos, which is a critical component in autonomous driving systems. The pipeline processes images and videos to detect and overlay lane lines using edge detection, region masking, and the Hough Transform.
 
-
-
 ---
 
 ## Table of Contents
