@@ -34,7 +34,7 @@ This project implements a **Lane Detection System** using computer vision techni
 ## Installation
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-username/lane-detection.git
+   git clone https://github.com/8dsasb/lane-detection.git
    cd lane-detection
 2. Install dependencies:
    pip install -r requirements.txt
